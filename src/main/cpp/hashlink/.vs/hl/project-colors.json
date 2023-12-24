@@ -1,0 +1,16 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "12049f27-ea26-4a33-adf8-e542c4167c00": {
+      "ProjectGuid": "12049f27-ea26-4a33-adf8-e542c4167c00",
+      "DisplayName": "sdl",
+      "ColorIndex": 0
+    },
+    "c6213fbf-bc2b-4235-a827-84a60e848c52": {
+      "ProjectGuid": "c6213fbf-bc2b-4235-a827-84a60e848c52",
+      "DisplayName": "libhl",
+      "ColorIndex": 1
+    }
+  },
+  "NextColorIndex": 2
+}
