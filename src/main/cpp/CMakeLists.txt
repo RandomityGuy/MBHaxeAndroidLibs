@@ -42,20 +42,96 @@ file(GLOB pcre
 	hashlink/include/pcre/pcre2_xclass.c
 )
 
-file(GLOB mbedtls hashlink/include/mbedtls/library/*.c)
+file(GLOB mbedtls hashlink/libs/datachannel/include/mbedtls/library/*.c)
+
+set (MBEDTLS_SRC 
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/aes.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/aesni.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/aria.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/asn1parse.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/asn1write.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/base64.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/bignum.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/camellia.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ccm.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/chacha20.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/chachapoly.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/cipher.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/cipher_wrap.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/cmac.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ctr_drbg.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/des.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/dhm.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ecdh.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ecdsa.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ecjpake.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ecp.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ecp_curves.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/entropy.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/entropy_poll.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/error.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/gcm.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/hkdf.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/hmac_drbg.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/md.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/md5.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/memory_buffer_alloc.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/mps_reader.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/mps_trace.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/nist_kw.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/oid.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/padlock.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/pem.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/pk.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/pk_wrap.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/pkcs12.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/pkcs5.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/pkparse.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/pkwrite.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/platform.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/platform_util.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/poly1305.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ripemd160.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/rsa.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/rsa_alt_helpers.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/sha1.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/sha256.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/sha512.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/threading.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/timing.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/version.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/version_features.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/x509.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/x509_create.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/x509_crl.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/x509_crt.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/x509_csr.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/x509write_crt.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/x509write_csr.c
+	    hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/debug.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/net_sockets.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ssl_cache.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ssl_ciphersuites.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ssl_cli.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ssl_cookie.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ssl_msg.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ssl_srv.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ssl_ticket.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ssl_tls.c
+		hashlink/libs/datachannel/libdatachannel/deps/mbedtls/library/ssl_tls13_keys.c
+)
 
 add_library(hl STATIC
 	${pcre}
 	${libhl}
-	${mbedtls}
 	hashlink/src/std/sys_android.c
 	hashlink/libs/ssl/ssl.c
 )
 
 set_target_properties(hl PROPERTIES COMPILE_DEFINITIONS "HAVE_CONFIG_H;PCRE2_CODE_UNIT_WIDTH=16")
 target_include_directories(hl PRIVATE hashlink/include/pcre)
-target_include_directories(hl PRIVATE hashlink/include/mbedtls/include)
-target_link_libraries(hl log)
+target_include_directories(hl PRIVATE hashlink/libs/datachannel/libdatachannel/deps/mbedtls/include)
+target_link_libraries(hl MbedTLS log)
 
 # FMT
 set(TJ_LIB ${CMAKE_CURRENT_SOURCE_DIR}/libjpeg-turbo/obj/local/${ANDROID_ABI}/libjpeg-turbo.a)
@@ -120,8 +196,19 @@ add_library(uv.hdll STATIC ${libuv})
 target_include_directories(uv.hdll PUBLIC libuv/include)
 target_link_libraries(uv.hdll uv)
 
+# Datachannel
+add_subdirectory("hashlink/libs/datachannel/libdatachannel")
+set (DATACHANNEL_SRC
+	"hashlink/libs/datachannel/src/datachannel.c"
+)
+
+add_library(datachannel.hdll STATIC ${DATACHANNEL_SRC})
+target_include_directories(datachannel.hdll PRIVATE hashlink/src)
+target_link_libraries(datachannel.hdll hl datachannel-static)
+
+
 # Heaps Application
 add_library(heapsapp SHARED out/main.c jni.c stb/glyphme.cpp)
 target_include_directories(heapsapp PRIVATE out)
 target_include_directories(heapsapp PRIVATE stb)
-target_link_libraries(heapsapp hl sdl.hdll fmt.hdll openal.hdll ui.hdll uv.hdll)
+target_link_libraries(heapsapp hl sdl.hdll fmt.hdll openal.hdll ui.hdll uv.hdll datachannel.hdll)

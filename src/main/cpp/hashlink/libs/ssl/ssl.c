@@ -29,6 +29,7 @@ typedef int SOCKET;
 #include "mbedtls/md.h"
 #include "mbedtls/pk.h"
 #include "mbedtls/oid.h"
+#include "mbedtls/x509.h"
 #include "mbedtls/x509_crt.h"
 #include "mbedtls/ssl.h"
 
@@ -253,6 +254,10 @@ HL_PRIM void HL_NAME(conf_set_ca)(mbedtls_ssl_config *conf, hl_ssl_cert *cert) {
 	mbedtls_ssl_conf_ca_chain(conf, cert->c, NULL);
 }
 
+HL_PRIM void HL_NAME(conf_set_transport)(mbedtls_ssl_config* conf, int mode) {
+	mbedtls_ssl_conf_transport(conf, mode);
+}
+
 HL_PRIM void HL_NAME(conf_set_verify)(mbedtls_ssl_config *conf, int mode) {
 	if (mode == 2)
 		mbedtls_ssl_conf_authmode(conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
@@ -297,6 +302,7 @@ HL_PRIM void HL_NAME(conf_set_servername_callback)(mbedtls_ssl_config *conf, vcl
 DEFINE_PRIM(TCONF, conf_new, _BOOL);
 DEFINE_PRIM(_VOID, conf_close, TCONF);
 DEFINE_PRIM(_VOID, conf_set_ca, TCONF TCERT);
+DEFINE_PRIM(_VOID, conf_set_transport, TCONF _I32);
 DEFINE_PRIM(_VOID, conf_set_verify, TCONF _I32);
 DEFINE_PRIM(_VOID, conf_set_cert, TCONF TCERT TPKEY);
 DEFINE_PRIM(_VOID, conf_set_servername_callback, TCONF _FUN(_OBJ(TCERT TPKEY), _BYTES));
@@ -593,7 +599,7 @@ HL_PRIM hl_ssl_pkey *HL_NAME(key_from_der)(vbyte *data, int len, bool pub) {
 	if (pub)
 		r = mbedtls_pk_parse_public_key(pk, (const unsigned char*)data, len);
 	else
-		r = mbedtls_pk_parse_key(pk, (const unsigned char*)data, len, NULL, 0);
+		r = mbedtls_pk_parse_key(pk, (const unsigned char*)data, len, NULL, 0, mbedtls_ctr_drbg_random, &ctr_drbg);
 	if (r != 0) {
 		mbedtls_pk_free(pk);
 		free(pk);
@@ -619,9 +625,9 @@ HL_PRIM hl_ssl_pkey *HL_NAME(key_from_pem)(vbyte *data, bool pub, vbyte *pass) {
 	if (pub)
 		r = mbedtls_pk_parse_public_key(pk, buf, len);
 	else if (pass == NULL)
-		r = mbedtls_pk_parse_key(pk, buf, len, NULL, 0);
+		r = mbedtls_pk_parse_key(pk, buf, len, NULL, 0, mbedtls_ctr_drbg_random, &ctr_drbg);
 	else
-		r = mbedtls_pk_parse_key(pk, buf, len, (const unsigned char*)pass, strlen((char*)pass));
+		r = mbedtls_pk_parse_key(pk, buf, len, (const unsigned char*)pass, strlen((char*)pass), mbedtls_ctr_drbg_random, &ctr_drbg);
 	free(buf);
 	if (r != 0) {
 		mbedtls_pk_free(pk);
@@ -678,7 +684,7 @@ HL_PRIM vbyte *HL_NAME(dgst_sign)(vbyte *data, int len, hl_ssl_pkey *key, vbyte 
 	}
 
 	out = hl_gc_alloc_noptr(MBEDTLS_MPI_MAX_SIZE);
-	if ((r = mbedtls_pk_sign(key->k, mbedtls_md_get_type(md), hash, 0, out, (size ? &ssize : NULL), mbedtls_ctr_drbg_random, &ctr_drbg)) != 0){
+	if ((r = mbedtls_pk_sign(key->k, mbedtls_md_get_type(md), hash, 0, out, MBEDTLS_MPI_MAX_SIZE, (size ? &ssize : NULL), mbedtls_ctr_drbg_random, &ctr_drbg)) != 0){
 		ssl_error(r);
 		return NULL;
 	}
