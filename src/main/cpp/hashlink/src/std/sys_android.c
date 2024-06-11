@@ -80,7 +80,7 @@ static JNIEnv* hl_android_jni_get_env(void)
 	return env;
 }
 
-HL_PRIM void HL_NAME(hl_open_url)(vstring* url) 
+HL_PRIM void HL_NAME(hl_open_web_url)(vstring* url)
 {
 	__android_log_print(ANDROID_LOG_ERROR, HL_JNI_LOG_TAG, "Getting ENV");
     JNIEnv* g_env = hl_android_jni_get_env();
@@ -93,7 +93,7 @@ HL_PRIM void HL_NAME(hl_open_url)(vstring* url)
 
     jclass cls = (*g_env)->FindClass( g_env, "org/haxe/HashLinkActivity" );
 
-    jmethodID open_url = (*g_env)->GetStaticMethodID( g_env, cls, "openURL", "(Ljava/lang/String;)V");
+    jmethodID open_url = (*g_env)->GetStaticMethodID( g_env, cls, "openWebURL", "(Ljava/lang/String;)V");
 
 	__android_log_print(ANDROID_LOG_ERROR, HL_JNI_LOG_TAG, "Calling fn");
 

@@ -66,7 +66,7 @@ public class HashLinkActivity extends SDLActivity {
         return instance.getApplicationContext();
     }
 
-    public static void openURL(String url) {
+    public static void openWebURL(String url) {
         Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
         instance.startActivity(browserIntent);
     }
