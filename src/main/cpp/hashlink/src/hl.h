@@ -27,7 +27,7 @@
 	https://github.com/HaxeFoundation/hashlink/wiki/
 **/
 
-#define HL_VERSION	0x010D00
+#define HL_VERSION	0x010E00
 
 #if defined(_WIN32)
 #	define HL_WIN
@@ -559,6 +559,9 @@ typedef struct {
 	vvirtual *virtuals;
 } vdynobj;
 
+#define HL_DYNOBJ_INDEX_SHIFT 17
+#define HL_DYNOBJ_INDEX_MASK ((1 << HL_DYNOBJ_INDEX_SHIFT) - 1)
+
 typedef struct _venum {
 	hl_type *t;
 	int index;
@@ -893,6 +896,7 @@ struct _hl_trap_ctx {
 #define HL_EXC_IS_THROW		4
 #define HL_THREAD_INVISIBLE	16
 #define HL_THREAD_PROFILER_PAUSED 32
+#define HL_EXC_KILL			64
 #define HL_TREAD_TRACK_SHIFT 16
 
 #define HL_TRACK_ALLOC		1
