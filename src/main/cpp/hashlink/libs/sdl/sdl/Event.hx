@@ -6,6 +6,8 @@ package sdl;
 	public var mouseY : Int;
 	public var mouseXRel : Int;
 	public var mouseYRel : Int;
+	public var touchX: Float;
+	public var touchY: Float;
 	public var button : Int;
 	public var wheelDelta : Int;
 	public var state : WindowStateChange;
@@ -20,7 +22,7 @@ package sdl;
 	}
 }
 
-@:enum abstract EventType(Int) {
+enum abstract EventType(Int) {
 	var Quit		= 0;
 	var MouseMove	= 1;
 	var MouseLeave	= 2;
@@ -48,7 +50,7 @@ package sdl;
 	var JoystickRemoved		= 306;
 }
 
-@:enum abstract WindowStateChange(Int) {
+enum abstract WindowStateChange(Int) {
 	var Show	= 0;
 	var Hide	= 1;
 	var Expose	= 2;
