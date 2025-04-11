@@ -88,7 +88,7 @@ static int_val gc_hash( void *ptr ) {
 #	define GC_MAX_MARK_THREADS 1
 #else
 #	ifndef GC_MAX_MARK_THREADS
-#	define GC_MAX_MARK_THREADS 4
+#	define GC_MAX_MARK_THREADS 1
 #	endif
 #endif
 
