@@ -82,25 +82,100 @@ static JNIEnv* hl_android_jni_get_env(void)
 
 HL_PRIM void HL_NAME(hl_open_web_url)(vstring* url)
 {
-	__android_log_print(ANDROID_LOG_ERROR, HL_JNI_LOG_TAG, "Getting ENV");
     JNIEnv* g_env = hl_android_jni_get_env();
 
-	__android_log_print(ANDROID_LOG_ERROR, HL_JNI_LOG_TAG, "Got ENV");
-
     char* cname = hl_to_utf8(url->bytes);
-
-	__android_log_print(ANDROID_LOG_ERROR, HL_JNI_LOG_TAG, "Finding class");
 
     jclass cls = (*g_env)->FindClass( g_env, "org/haxe/HashLinkActivity" );
 
     jmethodID open_url = (*g_env)->GetStaticMethodID( g_env, cls, "openWebURL", "(Ljava/lang/String;)V");
 
-	__android_log_print(ANDROID_LOG_ERROR, HL_JNI_LOG_TAG, "Calling fn");
-
     jstring urlstr;
     urlstr = (*g_env)->NewStringUTF( g_env, cname);
 
     (*g_env)->CallStaticVoidMethod( g_env, cls, open_url, urlstr );
+}
+
+HL_PRIM void HL_NAME(hl_export_prefs)()
+{
+    JNIEnv* g_env = hl_android_jni_get_env();
+
+    jclass cls = (*g_env)->FindClass( g_env, "org/haxe/HashLinkActivity" );
+
+    jmethodID export_prefs = (*g_env)->GetStaticMethodID( g_env, cls, "exportPrefsJson", "()V");
+
+    (*g_env)->CallStaticVoidMethod( g_env, cls, export_prefs );
+}
+
+hl_mutex* import_cb_mutex = NULL;
+
+vclosure* importPrefsCb;
+char* importPrefsRes = NULL;
+
+JNIEXPORT void JNICALL Java_org_haxe_HashLinkActivity_importPrefs(JNIEnv *env, jclass type, jstring strDir_) {
+    JNIEnv* g_env = hl_android_jni_get_env();
+
+    const char* jsonStr = (*g_env)->GetStringUTFChars(g_env, strDir_, NULL);
+    if (!jsonStr) {
+    	LOGE("Failed to convert imported JSON content to UTF-8 string");
+    	return;
+    }
+
+    // Make a copy of the string to return
+    char* result = strdup(jsonStr);
+    (*g_env)->ReleaseStringUTFChars(g_env, strDir_, jsonStr);
+
+	importPrefsRes = result;
+}
+
+HL_PRIM void HL_NAME(hl_start_import_prefs)(vclosure* cb)
+{
+	import_cb_mutex = hl_mutex_alloc(false);
+	hl_add_root(&import_cb_mutex);
+
+	hl_mutex_acquire(import_cb_mutex);
+
+    importPrefsCb = cb;
+    JNIEnv* g_env = hl_android_jni_get_env();
+
+    jclass cls = (*g_env)->FindClass( g_env, "org/haxe/HashLinkActivity" );
+
+    jmethodID import_prefs = (*g_env)->GetStaticMethodID( g_env, cls, "importJsonFile", "()V");
+
+    (*g_env)->CallStaticVoidMethod( g_env, cls, import_prefs );
+
+	hl_mutex_release(import_cb_mutex);
+}
+
+HL_PRIM void HL_NAME(hl_call_import_cb)()
+{
+	if (import_cb_mutex != NULL)
+	{
+		hl_mutex_acquire(import_cb_mutex);
+
+		if (importPrefsRes != NULL)
+		{
+			vdynamic* args[1];
+
+			vdynamic arg;
+			arg.t = &hlt_bytes;
+			arg.v.bytes = (vbyte*)importPrefsRes;
+			args[0] = &arg;
+			hl_dyn_call(importPrefsCb, args, 1);
+
+			free(importPrefsRes);
+			importPrefsRes = NULL;
+
+			hl_mutex_release(import_cb_mutex);
+			hl_remove_root(&import_cb_mutex);
+			hl_mutex_free(import_cb_mutex);
+			import_cb_mutex = NULL;
+		}
+		else
+		{
+			hl_mutex_release(import_cb_mutex);
+		}
+	}
 }
 
 /* JNI_OnLoad is automatically called when loading shared library through System.loadLibrary() Java call */
