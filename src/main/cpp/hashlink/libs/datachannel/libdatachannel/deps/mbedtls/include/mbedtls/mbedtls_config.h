@@ -2382,7 +2382,10 @@
  *
  * This module adds support for the AES Armv8-A Cryptographic Extensions on Armv8 systems.
  */
-#define MBEDTLS_AESCE_C
+/* Disabled: the NDK 18 (Clang based on LLVM ~7) toolchain used for the Android
+ * build cannot select the aarch64 crypto intrinsics in aesce.c
+ * (llvm.aarch64.crypto.aese), so use the C software AES implementation. */
+//#define MBEDTLS_AESCE_C
 
 /**
  * \def MBEDTLS_AES_C
