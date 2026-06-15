@@ -466,7 +466,9 @@ HL_PRIM varray *HL_NAME(cert_get_altnames)(hl_ssl_cert *cert) {
 	varray *a = NULL;
 	vbyte **current = NULL;
 	mbedtls_x509_crt *crt = cert->c;
-	if (crt->ext_types & MBEDTLS_X509_EXT_SUBJECT_ALT_NAME) {
+	// mbedtls 3.x made ext_types private; the SAN sequence head has a NULL
+	// buffer pointer when no Subject Alternative Name extension is present.
+	if (crt->subject_alt_names.buf.p != NULL) {
 		cur = &crt->subject_alt_names;
 		while (cur != NULL) {
 			if (pos == count) {
