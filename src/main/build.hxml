@@ -26,5 +26,6 @@
 -D zyheaps=0.0.1
 -D actuate_manual_update=
 -D platform=windows
+-D flow_border
 -lib hlsdl
 -hl Export/android/app/src/main/cpp/out/main.c
