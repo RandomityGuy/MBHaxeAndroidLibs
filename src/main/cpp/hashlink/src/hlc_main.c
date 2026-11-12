@@ -87,7 +87,7 @@ extern void sys_global_exit();
 #	define _CrtCheckMemory()
 #endif
 
-#if defined(HL_LINUX) || defined(HL_MAC)
+#if (defined(HL_LINUX) || defined(HL_MAC)) && !defined(HL_ANDROID)
 #	include <execinfo.h>
 #endif
 
@@ -116,7 +116,7 @@ static uchar *hlc_resolve_symbol( void *addr, uchar *out, int *outSize ) {
 		*outSize = usprintf(out,*outSize,USTR("%s(%s:%d)"),data.sym.Name,wcsrchr(line.FileName,'\\')+1,(int)line.LineNumber);
 		return out;
 	}
-#elif defined(HL_LINUX) || defined(HL_MAC)
+#elif (defined(HL_LINUX) || defined(HL_MAC)) && !defined(HL_ANDROID)
 	void *array[1];
 	char **strings;
 	array[0] = addr;
@@ -145,7 +145,7 @@ static int hlc_capture_stack( void **stack, int size ) {
 #	ifdef HL_WIN_DESKTOP
 	count = CaptureStackBackTrace(2, size, stack, NULL);
 	if( size == HL_EXC_MAX_STACK ) count -= 8; // 8 startup
-#	elif defined(HL_LINUX)
+#	elif defined(HL_LINUX) && !defined(HL_ANDROID)
 	count = backtrace(stack, size);
 	if( size == HL_EXC_MAX_STACK ) count -= 8;
 #	elif defined(HL_MAC)
