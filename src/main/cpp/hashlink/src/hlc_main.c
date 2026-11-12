@@ -29,6 +29,15 @@
 # ifndef CONST
 #	define CONST
 # endif
+# ifndef IN
+#	define IN
+# endif
+# ifndef OUT
+#	define OUT
+# endif
+# ifndef OPTIONAL
+#	define OPTIONAL
+# endif
 #	pragma warning(disable:4091)
 #if !defined(HL_MINGW)
 #	include <DbgHelp.h>
@@ -37,6 +46,29 @@
 #endif
 #	pragma comment(lib, "Dbghelp.lib")
 #	undef CONST
+#	undef IN
+#	undef OUT
+#	undef OPTIONAL
+#	undef DELETE
+#	undef ERROR
+#	undef NO_ERROR
+#	undef STRICT
+#	undef TRUE
+#	undef FALSE
+#	undef CW_USEDEFAULT
+#	undef far
+#	undef FAR
+#	undef near
+#	undef NEAR
+#	undef GENERIC_READ
+#	undef ALTERNATE
+#	undef DIFFERENCE
+#	undef DOUBLE_CLICK
+#	undef WAIT_FAILED
+#	undef TRANSPARENT
+#	undef CopyFile
+#	undef COLOR_HIGHLIGHT
+#	undef __valid
 #endif
 
 #ifdef HL_CONSOLE
@@ -53,6 +85,10 @@ extern void sys_global_exit();
 #else
 #	define _CrtSetDbgFlag(x)
 #	define _CrtCheckMemory()
+#endif
+
+#if defined(HL_LINUX) || defined(HL_MAC)
+#	include <execinfo.h>
 #endif
 
 static uchar *hlc_resolve_symbol( void *addr, uchar *out, int *outSize ) {
@@ -80,16 +116,43 @@ static uchar *hlc_resolve_symbol( void *addr, uchar *out, int *outSize ) {
 		*outSize = usprintf(out,*outSize,USTR("%s(%s:%d)"),data.sym.Name,wcsrchr(line.FileName,'\\')+1,(int)line.LineNumber);
 		return out;
 	}
+#elif defined(HL_LINUX) || defined(HL_MAC)
+	void *array[1];
+	char **strings;
+	array[0] = addr;
+	strings = backtrace_symbols(array, 1);
+	if (strings != NULL) {
+		*outSize = (int)strlen(strings[0]) << 1;
+		out = (uchar*)hl_gc_alloc_noptr(*outSize);
+		hl_from_utf8(out,*outSize,strings[0]);
+		free(strings);
+		return out;
+	}
 #endif
 	return NULL;
 }
 
 static int hlc_capture_stack( void **stack, int size ) {
 	int count = 0;
-#	ifdef HL_WIN_DESKTOP
-	count = CaptureStackBackTrace(2, size, stack, NULL) - 8; // 8 startup
-	if( count < 0 ) count = 0;
+#	if defined(HL_WIN_DESKTOP) || defined(HL_LINUX) || defined(HL_MAC)
+	// force return total count when output stack is null
+	static void* tmpstack[HL_EXC_MAX_STACK];
+	if( stack == NULL ) {
+		stack = tmpstack;
+		size = HL_EXC_MAX_STACK;
+	}
 #	endif
+#	ifdef HL_WIN_DESKTOP
+	count = CaptureStackBackTrace(2, size, stack, NULL);
+	if( size == HL_EXC_MAX_STACK ) count -= 8; // 8 startup
+#	elif defined(HL_LINUX)
+	count = backtrace(stack, size);
+	if( size == HL_EXC_MAX_STACK ) count -= 8;
+#	elif defined(HL_MAC)
+	count = backtrace(stack, size);
+	if( size == HL_EXC_MAX_STACK ) count -= 6;
+#	endif
+	if( count < 0 ) count = 0;
 	return count;
 }
 
@@ -137,11 +200,7 @@ int main(int argc, char *argv[]) {
 	cl.fun = hl_entry_point;
 	ret = hl_dyn_call_safe(&cl, NULL, 0, &isExc);
 	if( isExc ) {
-		varray *a = hl_exception_stack();
-		int i;
-		uprintf(USTR("Uncaught exception: %s\n"), hl_to_string(ret));
-		for (i = 0; i<a->size; i++)
-			uprintf(USTR("Called from %s\n"), hl_aptr(a, uchar*)[i]);
+		hl_print_uncaught_exception(ret);
 	}
 	hl_global_free();
 	sys_global_exit();

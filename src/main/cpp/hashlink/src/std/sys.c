@@ -188,17 +188,25 @@ HL_PRIM void hl_sys_exit( int code ) {
 	exit(code);
 }
 
+#ifdef HL_DEBUG_REPRO
+static double CURT = 0;
+#endif
+
+#ifdef HL_WIN
+static LARGE_INTEGER qpcFrequency;
+#endif
+
 HL_PRIM double hl_sys_time() {
+#ifdef HL_DEBUG_REPRO
+	CURT += 0.001;
+	return CURT;
+#endif
 #ifdef HL_WIN
 	#define EPOCH_DIFF	(134774*24*60*60.0)
 	static double time_diff = 0.;
-	static double freq = 0.;
 	LARGE_INTEGER time;
 
-	if( freq == 0 ) {
-		QueryPerformanceFrequency(&time);
-		freq = (double)time.QuadPart;
-	}
+	double freq = (double)qpcFrequency.QuadPart;
 	QueryPerformanceCounter(&time);
 	if( time_diff == 0 ) {
 		FILETIME ft;
@@ -214,6 +222,22 @@ HL_PRIM double hl_sys_time() {
 	if( gettimeofday(&tv,NULL) != 0 )
 		return 0.;
 	return tv.tv_sec + ((double)tv.tv_usec) / 1000000.0;
+#endif
+}
+
+HL_PRIM int64 hl_sys_timestamp_ms() {
+#ifdef HL_WIN
+	LARGE_INTEGER time;
+	QueryPerformanceCounter(&time);
+
+	return time.QuadPart * 1000LL / qpcFrequency.QuadPart;
+#else
+	struct timespec ts;
+	if (clock_gettime(CLOCK_MONOTONIC, &ts)) {
+		return 0;
+	}
+
+	return ts.tv_sec * 1000 + (ts.tv_nsec / 1000000);
 #endif
 }
 
@@ -592,17 +616,16 @@ HL_PRIM vbyte *hl_sys_exe_path() {
 #elif defined(HL_CONSOLE)
 	return sys_exe_path();
 #else
-	const pchar *p = getenv("_");
-	if( p != NULL )
-		return (vbyte*)pstrdup(p,-1);
-	{
-		pchar path[PATH_MAX];
-		int length = readlink("/proc/self/exe", path, sizeof(path));
-		if( length < 0 )
-			return NULL;
-		path[length] = '\0';
-		return (vbyte*)pstrdup(path,-1);
+	pchar path[PATH_MAX];
+	int length = readlink("/proc/self/exe", path, sizeof(path));
+	if( length < 0 ) {
+		const pchar *p = getenv("_");
+		if( p != NULL )
+			return (vbyte*)pstrdup(p,-1);
+		return NULL;
 	}
+	path[length] = '\0';
+	return (vbyte*)pstrdup(path,-1);
 #endif
 }
 
@@ -654,6 +677,9 @@ HL_PRIM varray *hl_sys_args() {
 static void *hl_file = NULL;
 
 HL_PRIM void hl_sys_init(void **args, int nargs, void *hlfile) {
+#ifdef HL_WIN
+	QueryPerformanceFrequency(&qpcFrequency);
+#endif
 	sys_args = (pchar**)args;
 	sys_nargs = nargs;
 	hl_file = hlfile;
@@ -701,6 +727,7 @@ DEFINE_PRIM(_BYTES, sys_locale, _NO_ARG);
 DEFINE_PRIM(_VOID, sys_print, _BYTES);
 DEFINE_PRIM(_VOID, sys_exit, _I32);
 DEFINE_PRIM(_F64, sys_time, _NO_ARG);
+DEFINE_PRIM(_I64, sys_timestamp_ms, _NO_ARG);
 DEFINE_PRIM(_BYTES, sys_get_env, _BYTES);
 DEFINE_PRIM(_BOOL, sys_put_env, _BYTES _BYTES);
 DEFINE_PRIM(_ARR, sys_env, _NO_ARG);

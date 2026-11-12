@@ -149,6 +149,9 @@ HL_PRIM vdynamic* hl_call_method( vdynamic *c, varray *args ) {
 	if( args->size > HL_MAX_ARGS )
 		hl_error("Too many arguments");
 	if( cl->hasValue ) {
+		if( cl->hasValue == 2 ) {
+			cl = ((vclosure_wrapper*)cl)->wrappedFun;
+		}
 		if( cl->fun == fun_var_args ) {
 			cl = (vclosure*)cl->value;
 			return cl->hasValue ? ((vdynamic* (*)(vdynamic*, varray*))cl->fun)(cl->value, args) : ((vdynamic* (*)(varray*))cl->fun)(args);
@@ -177,6 +180,7 @@ HL_PRIM vdynamic* hl_call_method( vdynamic *c, varray *args ) {
 			p = &tmp[i].i;
 			break;
 		case HI64:
+		case HGUID:
 			tmp[i].i64 = hl_dyn_casti64(vargs + i, &hlt_dyn);
 			p = &tmp[i].i64;
 			break;
@@ -228,7 +232,7 @@ HL_PRIM vdynamic *hl_dyn_call( vclosure *c, vdynamic **args, int nargs ) {
 	tmp.a.t = &hlt_array;
 	tmp.a.at = &hlt_dyn;
 	tmp.a.size = nargs;
-	if( c->hasValue && c->t->fun->nargs >= 0 ) {
+	if( c->hasValue && c->t->fun->nargs >= 0 && c->t->fun->parent != NULL ) {
 		ctmp.t = c->t->fun->parent;
 		ctmp.hasValue = 0;
 		ctmp.fun = c->fun;
@@ -284,6 +288,7 @@ HL_PRIM void *hl_wrapper_call( void *_c, void **args, vdynamic *ret ) {
 				v = &tmp[i].i;
 				break;
 			case HI64:
+			case HGUID:
 				tmp[i].i64 = hl_dyn_casti64(v,t);
 				v = &tmp[i].i64;
 				break;
@@ -315,6 +320,7 @@ HL_PRIM void *hl_wrapper_call( void *_c, void **args, vdynamic *ret ) {
 		ret->v.i = hl_dyn_casti(aret,w->t->fun->ret,tfun->ret);
 		break;
 	case HI64:
+	case HGUID:
 		ret->v.i64 = hl_dyn_casti64(aret,w->t->fun->ret);
 		break;
 	case HF32:

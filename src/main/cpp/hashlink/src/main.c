@@ -113,8 +113,10 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 #include <signal.h>
 static void handle_signal( int signum ) {
 	signal(signum, SIG_DFL);
-	printf("SIGNAL %d\n",signum);
-	hl_dump_stack();
+	printf("SIGNAL %d[%s]\n",signum,strsignal(signum));
+	if( hl_get_thread() != NULL ) {
+		hl_dump_stack();
+	}
 	fflush(stdout);
 	raise(signum);
 }
@@ -193,7 +195,7 @@ int main(int argc, pchar *argv[]) {
 		file = PSTR("hlboot.dat");
 		fchk = pfopen(file,"rb");
 		if( fchk == NULL ) {
-			printf("HL/JIT %d.%d.%d (c)2015-2022 Haxe Foundation\n  Usage : hl [--debug <port>] [--debug-wait] <file>\n",HL_VERSION>>16,(HL_VERSION>>8)&0xFF,HL_VERSION&0xFF);
+			printf("HL/JIT %d.%d.%d (c)2015-2025 Haxe Foundation\n  Usage : hl [--debug <port>] [--debug-wait] <file>\n",HL_VERSION>>16,(HL_VERSION>>8)&0xFF,HL_VERSION&0xFF);
 			return 1;
 		}
 		fclose(fchk);
@@ -222,7 +224,7 @@ int main(int argc, pchar *argv[]) {
 	}
 	hl_code_free(ctx.code);
 	if( debug_port > 0 && !hl_module_debug(ctx.m,debug_port,debug_wait) ) {
-		fprintf(stderr,"Could not start debugger on port %d",debug_port);
+		fprintf(stderr,"Could not start debugger on port %d\n",debug_port);
 		return 4;
 	}
 	cl.t = ctx.code->functions[ctx.m->functions_indexes[ctx.m->code->entrypoint]].type;
@@ -233,20 +235,23 @@ int main(int argc, pchar *argv[]) {
 	ctx.ret = hl_dyn_call_safe(&cl,NULL,0,&isExc);
 	hl_profile_end();
 	if( isExc ) {
-		varray *a = hl_exception_stack();
-		int i;
-		uprintf(USTR("Uncaught exception: %s\n"), hl_to_string(ctx.ret));
-		for(i=0;i<a->size;i++)
-			uprintf(USTR("Called from %s\n"), hl_aptr(a,uchar*)[i]);
+		hl_print_uncaught_exception(ctx.ret);
 		hl_debug_break();
+#ifdef HL_THREADS
+		hl_gc_major();
+#else
 		hl_global_free();
+#endif
 		return 1;
 	}
+#ifdef HL_THREADS
+	// other threads may still be running and crash if globals are freed, so only run a gc here
+	hl_gc_major();
+#else
 	hl_module_free(ctx.m);
 	hl_free(&ctx.code->alloc);
-	// do not call hl_unregister_thread() or hl_global_free will display error 
-	// on global_lock if there are threads that are still running (such as debugger)
 	hl_global_free();
+#endif
 	return 0;
 }
 

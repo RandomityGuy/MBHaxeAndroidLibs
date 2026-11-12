@@ -138,14 +138,14 @@ HL_PRIM hl_mutex *hl_mutex_alloc( bool gc_thread ) {
 }
 
 HL_PRIM void hl_mutex_acquire( hl_mutex *l ) {
-#	if !defined(HL_THREADS)
-#	elif defined(HL_WIN)
+#	if defined(HL_THREADS)
+	if( hl_mutex_try_acquire(l) ) return;
 	if( l->is_gc ) hl_blocking(true);
+#	ifdef HL_WIN
 	EnterCriticalSection(&l->cs);
-	if( l->is_gc ) hl_blocking(false);
 #	else
-	if( l->is_gc ) hl_blocking(true);
 	pthread_mutex_lock(&l->lock);
+#	endif
 	if( l->is_gc ) hl_blocking(false);
 #	endif
 }
@@ -272,7 +272,6 @@ HL_PRIM bool hl_semaphore_try_acquire(hl_semaphore *sem, vdynamic *timeout) {
 		t.tv_nsec = (long)delta;
 		ret = sem_timedwait(&sem->sem, &t) == 0;
 	} else {
-
 		ret = sem_trywait(&sem->sem) == 0;
 	}
 	hl_blocking(false);
@@ -528,12 +527,13 @@ HL_PRIM void hl_tls_set( hl_tls *l, void *v ) {
 			if( !v )
 				return;
 			store = (void**)malloc(sizeof(void*));
+			*store = NULL;
 			hl_add_root(store);
 			_tls_set(l, store);
 		} else {
 			if( !v ) {
-				free(store);
 				hl_remove_root(store);
+				free(store);
 				_tls_set(l, NULL);
 				return;
 			}
@@ -655,31 +655,33 @@ HL_PRIM void hl_deque_push( hl_deque *q, vdynamic *msg ) {
 
 HL_PRIM vdynamic *hl_deque_pop( hl_deque *q, bool block ) {
 	vdynamic *msg;
-	hl_blocking(true);
-	LOCK(q->lock);
-	while( q->first == NULL )
-		if( block ) {
-#			if !defined(HL_THREADS)
-#			elif defined(HL_WIN)
-			UNLOCK(q->lock);
-			WaitForSingleObject(q->wait,INFINITE);
-			LOCK(q->lock);
-#			else
-			pthread_cond_wait(&q->wait,&q->lock);
-#			endif
-		} else {
-			UNLOCK(q->lock);
-			hl_blocking(false);
+	tqueue *t;
+	while( true ) {
+		LOCK(q->lock);
+		t = q->first;
+		if( t != NULL ) break;
+		UNLOCK(q->lock);
+		if( !block )
 			return NULL;
-		}
-	msg = q->first->msg;
-	q->first = q->first->next;
+		hl_blocking(true);
+#		if !defined(HL_THREADS)
+#		elif defined(HL_WIN)
+		WaitForSingleObject(q->wait,INFINITE);
+#		else
+		pthread_mutex_lock(&q->lock);
+		while( q->first == NULL )
+			pthread_cond_wait(&q->wait,&q->lock);
+		pthread_mutex_unlock(&q->lock);
+#		endif
+		hl_blocking(false);
+	}
+	msg = t->msg;
+	q->first = t->next;
 	if( q->first == NULL )
 		q->last = NULL;
 	else
 		SIGNAL(q->wait);
 	UNLOCK(q->lock);
-	hl_blocking(false);
 	return msg;
 }
 
@@ -854,10 +856,9 @@ typedef struct {
 #ifdef HL_THREADS
 static void gc_thread_entry( thread_start *_s ) {
 	thread_start s = *_s;
-	hl_register_thread(&s);
-	hl_lock_release(_s->wait);
-	s.wait = _s->wait = NULL;
-	_s = NULL;
+	hl_register_thread((thread_start*)&s + 1);
+	hl_lock_release(s.wait);
+	s.wait = NULL;
 	s.callb(s.param);
 	hl_unregister_thread();
 }
@@ -865,13 +866,13 @@ static void gc_thread_entry( thread_start *_s ) {
 
 HL_PRIM hl_thread *hl_thread_start( void *callback, void *param, bool withGC ) {
 #ifdef HL_THREADS
+	thread_start s = {0};
 	if( withGC ) {
-		thread_start *s = (thread_start*)hl_gc_alloc_raw(sizeof(thread_start));
-		s->callb = callback;
-		s->param = param;
-		s->wait = hl_lock_create();
+		s.callb = callback;
+		s.param = param;
+		s.wait = hl_lock_create();
 		callback = gc_thread_entry;
-		param = s;
+		param = &s;
 	}
 #endif
 #if !defined(HL_THREADS)
@@ -883,10 +884,8 @@ HL_PRIM hl_thread *hl_thread_start( void *callback, void *param, bool withGC ) {
 	if( h == NULL )
 		return NULL;
 	CloseHandle(h);
-	if( withGC ) {
-		hl_lock *l = ((thread_start*)param)->wait;
-		if( l ) hl_lock_wait(l, NULL);
-	}
+	if( withGC )
+		hl_lock_wait(s.wait, NULL);
 	return (hl_thread*)(int_val)tid;
 #else
 	pthread_t t;
@@ -898,26 +897,18 @@ HL_PRIM hl_thread *hl_thread_start( void *callback, void *param, bool withGC ) {
 		return NULL;
 	}
 	pthread_attr_destroy(&attr);
-	if( withGC ) {
-		hl_lock *l = ((thread_start*)param)->wait;
-		if( l ) hl_lock_wait(l, NULL);
-	}
+	if( withGC )
+		hl_lock_wait(s.wait, NULL);
 	return (hl_thread*)t;
 #endif
 }
 
 static void hl_run_thread( vclosure *c ) {
 	bool isExc;
-	varray *a;
-	int i;
 	vdynamic *exc = hl_dyn_call_safe(c,NULL,0,&isExc);
 	if( !isExc )
 		return;
-	a = hl_exception_stack();
-	uprintf(USTR("Uncaught exception: %s\n"), hl_to_string(exc));
-	for(i=0;i<a->size;i++)
-		uprintf(USTR("Called from %s\n"), hl_aptr(a,uchar*)[i]);
-	fflush(stdout);
+	hl_print_uncaught_exception(exc);
 }
 
 HL_PRIM hl_thread *hl_thread_create( vclosure *c ) {
@@ -971,8 +962,8 @@ HL_PRIM void hl_thread_set_name( hl_thread *t, const char *name ) {
 	// nothing
 #elif defined(HL_WIN)
 	SetThreadName((DWORD)(int_val)t,name);
-#elif defined(HL_MAC)
-	// pthread_setname_np only possible for current thread
+#elif defined(HL_MAC) || defined(__APPLE__)
+	// pthread_setname_np only possible for current thread on Apple platforms
 #else
 	pthread_setname_np((pthread_t)t,name);
 #endif

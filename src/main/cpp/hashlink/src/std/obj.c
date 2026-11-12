@@ -686,7 +686,7 @@ static void hl_dynobj_delete_field( vdynobj *o, hl_field_lookup *f ) {
 	int i;
 	unsigned int order = hl_dynobj_order(f);
 	int index = f->field_index & HL_DYNOBJ_INDEX_MASK;
-	bool is_ptr = hl_is_ptr(f->t); 
+	bool is_ptr = hl_is_ptr(f->t);
 	// erase data
 	if( is_ptr ) {
 		memmove(o->values + index, o->values + index + 1, (o->nvalues - (index + 1)) * sizeof(void*));
@@ -923,6 +923,7 @@ HL_PRIM int64 hl_dyn_geti64( vdynamic *d, int hfield ) {
 	case HI32:
 		return *(int*)addr;
 	case HI64:
+	case HGUID:
 		return *(int64*)addr;
 	case HF32:
 		return (int64)*(float*)addr;
@@ -1040,6 +1041,7 @@ HL_PRIM void hl_dyn_seti( vdynamic *d, int hfield, hl_type *t, int value ) {
 		*(int*)addr = value;
 		break;
 	case HI64:
+	case HGUID:
 		*(int64*)addr = value;
 		break;
 	case HBOOL:
@@ -1077,6 +1079,7 @@ HL_PRIM void hl_dyn_seti64( vdynamic *d, int hfield, int64 value ) {
 		*(int*)addr = (int)value;
 		break;
 	case HI64:
+	case HGUID:
 		*(int64*)addr = value;
 		break;
 	case HBOOL:
